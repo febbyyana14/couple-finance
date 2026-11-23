@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Couple Finance – Family Financial Management</title>
+  <meta name="description" content="Aplikasi web manajemen keuangan keluarga komprehensif untuk suami dan istri berbasis Google Apps Script dan Google Sheets.">
+  
+  <!-- Favicon & PWA Theme -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💍</text></svg>">
+  <meta name="theme-color" content="#0E4D43">
+
+  <!-- Font Awesome 6 & Chart.js & SheetJS & jsPDF -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- =====================================================================================
+       1. PIN AUTHENTICATION LOCK SCREEN (MODAL OTENTIKASI AWAL)
+       ===================================================================================== -->
+  <div id="lockScreen" class="lock-screen-container">
+    <div class="lock-card">
+      <div style="width: 56px; height: 56px; background: #0E4D43; color: #FFF; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px; box-shadow: 0 4px 16px rgba(14,77,67,0.3);">
+        <i class="fa-solid fa-vault"></i>
+      </div>
+      <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">Couple Finance</h2>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Pilih profil dan masukkan 6-digit PIN untuk membuka</p>
+
+      <!-- Selector Pengguna: Suami atau Istri -->
+      <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+        <button type="button" id="pinUserSuami" class="scope-pill active" style="flex: 1; padding: 10px; font-size: 13px;" onclick="App.selectPinUser('USR-01')">
+          <i class="fa-solid fa-user-tie"></i> Suami
+        </button>
+        <button type="button" id="pinUserIstri" class="scope-pill" style="flex: 1; padding: 10px; font-size: 13px;" onclick="App.selectPinUser('USR-02')">
+          <i class="fa-solid fa-user-nurse"></i> Istri
+        </button>
+      </div>
+
+      <!-- 6 Dots Display PIN -->
+      <div class="pin-dots-row">
+        <div class="pin-dot" id="dot-0"></div>
+        <div class="pin-dot" id="dot-1"></div>
+        <div class="pin-dot" id="dot-2"></div>
+        <div class="pin-dot" id="dot-3"></div>
+        <div class="pin-dot" id="dot-4"></div>
+        <div class="pin-dot" id="dot-5"></div>
+      </div>
+
+      <!-- Numpad Keypad 3x4 -->
+      <div class="keypad-grid">
+        <button class="keypad-btn" onclick="App.enterPinDigit('1')">1</button>
+        <button class="keypad-btn" onclick="App.enterPinDigit('2')">2</button>
+        <button class="keypad-btn" onclick="App.enterPinDigit('3')">3</button>
+        <button class="keypad-btn" onclick="App.enterPinDigit('4')">4</button>
+        <button class="keypad-btn" onclick="App.enterPinDigit('5')">5</button>
+        <button class="keypad-btn" onclick="App.enterPinDigit('6')">6</button>
+        <button class="keypad-btn" onclick="App.enterPinDigit('7')">7</button>
+        <button class="keypad-btn" onclick="App.enterPinDigit('8')">8</button>
+        <button class="keypad-btn" onclick="App.enterPinDigit('9')">9</button>
+        <button class="keypad-btn" style="font-size: 14px;" onclick="App.clearPin()"><i class="fa-solid fa-rotate-left"></i></button>
+        <button class="keypad-btn" onclick="App.enterPinDigit('0')">0</button>
+        <button class="keypad-btn" style="font-size: 16px;" onclick="App.backspacePin()"><i class="fa-solid fa-delete-left"></i></button>
+      </div>
+
+      <p style="font-size: 11.5px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <i class="fa-solid fa-shield-halved" style="color: var(--accent-emerald);"></i> Default PIN: <strong>123456</strong>
+      </p>
+    </div>
+  </div>
+
+  <!-- =====================================================================================
+       2. STRUKTUR UTAMA APLIKASI (SIDEBAR & MAIN CONTENT)
+       ===================================================================================== -->
+  <div class="app-layout">
+    
+    <!-- SIDEBAR NAVIGASI (Deep Vintage Teal #0E4D43) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="#" class="brand-badge" onclick="Store.setView('dashboard')">
+          <div class="brand-logo-icon"><i class="fa-solid fa-coins"></i></div>
+          <div>
+            <div class="brand-title">Couple Finance</div>
+            <div class="brand-subtitle">Family Wealth OS</div>
+          </div>
+        </a>
+      </div>
+
+      <!-- Profil Pengguna Aktif & Switcher -->
+      <div class="sidebar-user" onclick="App.toggleProfileSwitchModal()">
+        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Suami" id="sidebarAvatar" class="user-avatar" alt="Avatar">
+        <div class="user-info">
+          <div class="user-name" id="sidebarUserName">Suami</div>
+          <div class="user-role-badge">Dual-Admin Active</div>
+        </div>
+        <i class="fa-solid fa-arrows-rotate" style="font-size: 13px; color: rgba(255,255,255,0.7);"></i>
+      </div>
+
+      <!-- Daftar Menu 6 Pilar Finansial -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Menu Utama</div>
+        <div class="nav-item active" data-view="dashboard" onclick="Store.setView('dashboard')">
+          <i class="fa-solid fa-chart-pie"></i> Executive Dashboard
+        </div>
+        <div class="nav-item" data-view="daily" onclick="Store.setView('daily')">
+          <i class="fa-solid fa-receipt"></i> Keuangan Harian
+        </div>
+        <div class="nav-item" data-view="bills" onclick="Store.setView('bills')">
+          <i class="fa-solid fa-calendar-check"></i> Tagihan Rutin
+          <span class="nav-badge" id="badgeBillsDue">2</span>
+        </div>
+        <div class="nav-item" data-view="budget" onclick="Store.setView('budget')">
+          <i class="fa-solid fa-bullseye"></i> Anggaran Bulanan
+        </div>
+        <div class="nav-item" data-view="savings" onclick="Store.setView('savings')">
+          <i class="fa-solid fa-piggy-bank"></i> Target Tabungan
+          <span class="nav-badge" style="background: var(--accent-emerald);" id="badgeSavingsActive">3</span>
+        </div>
+        <div class="nav-item" data-view="invest" onclick="Store.setView('invest')">
+          <i class="fa-solid fa-arrow-trend-up"></i> Portofolio Investasi
+        </div>
+        <div class="nav-item" data-view="debts" onclick="Store.setView('debts')">
+          <i class="fa-solid fa-handshake"></i> Utang & Piutang
+        </div>
+
+        <div class="nav-section-title">Laporan & Sistem</div>
+        <div class="nav-item" data-view="reports" onclick="Store.setView('reports')">
+          <i class="fa-solid fa-file-invoice-dollar"></i> Laporan & Cetak PDF
+        </div>
+        <div class="nav-item" data-view="settings" onclick="Store.setView('settings')">
+          <i class="fa-solid fa-sliders"></i> Pengaturan & Backup
+        </div>
+      </nav>
+
+      <!-- Sidebar Footer (Theme Toggle & Lock) -->
+      <div class="sidebar-footer">
+        <button class="theme-toggle-btn" title="Toggle Tema Dark/Light" onclick="Store.toggleTheme()">
+          <i class="fa-solid fa-circle-half-stroke"></i>
+        </button>
+        <span style="font-size: 11px; color: rgba(255,255,255,0.6);" id="syncStatusText">
+          <i class="fa-solid fa-cloud" style="color: var(--accent-emerald);"></i> Terhubung
+        </span>
+        <button class="theme-toggle-btn" title="Kunci Aplikasi" onclick="App.lockApp()">
+          <i class="fa-solid fa-lock"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- WRAPPER KONTEN UTAMA -->
+    <main class="main-wrapper">
+      
+      <!-- Top Sticky Header Bar -->
+      <header class="top-header">
+        <div class="header-left">
+          <button class="sidebar-toggle-btn" onclick="App.toggleSidebar()">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+
+          <!-- Filter Scope Segmented Pills -->
+          <div class="scope-filter-pills">
+            <button class="scope-pill active" data-scope="All Family" onclick="App.selectScope('All Family')">All Family</button>
+            <button class="scope-pill" data-scope="Pribadi Suami" onclick="App.selectScope('Pribadi Suami')">Suami</button>
+            <button class="scope-pill" data-scope="Pribadi Istri" onclick="App.selectScope('Pribadi Istri')">Istri</button>
+            <button class="scope-pill" data-scope="Rumah Tangga Bersama" onclick="App.selectScope('Rumah Tangga Bersama')">Bersama</button>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Tombol Catat Cepat (+ Transaksi) -->
+          <button class="btn-quick-entry" onclick="App.openQuickEntryModal()">
+            <i class="fa-solid fa-plus"></i>
+            <span>Catat Cepat</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Content Views Body -->
+      <div class="content-body">
+
+        <!-- ===============================================================================
+             VIEW 1: EXECUTIVE DASHBOARD
+             =============================================================================== -->
+        <section id="view-dashboard" class="app-view active">
+          
+          <!-- Banner Pengingat Tagihan Jatuh Tempo (H-3 Alert) -->
+          <div class="alert-banner" id="bannerTagihanAlert">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px;"></i>
+              <div>
+                <strong>Pengingat Tagihan Keluarga:</strong>
+                <span id="bannerTagihanText">2 Tagihan perlu dilunasi (WiFi IndiHome & Listrik PLN)</span>
+              </div>
+            </div>
+            <button class="alert-btn" onclick="Store.setView('bills')">
+              Lihat Tagihan <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+
+          <!-- Top KPI Grid: 4 Kartu Metrik Utama -->
+          <div class="kpi-grid">
+            <!-- 1. Net Worth -->
+            <div class="kpi-card kpi-emerald">
+              <div class="kpi-header">
+                <span class="kpi-label">Total Net Worth</span>
+                <div class="kpi-icon-pill"><i class="fa-solid fa-gem"></i></div>
+              </div>
+              <div class="kpi-value" id="kpiNetWorth">Rp 450.850.000</div>
+              <div class="kpi-subtext">
+                <span class="badge badge-income"><i class="fa-solid fa-arrow-trend-up"></i> +4.2%</span>
+                <span>Kekayaan Bersih Keluarga</span>
+              </div>
+            </div>
+
+            <!-- 2. Total Kas & Bank Operasional -->
+            <div class="kpi-card kpi-ocean">
+              <div class="kpi-header">
+                <span class="kpi-label">Kas & Bank Operasional</span>
+                <div class="kpi-icon-pill"><i class="fa-solid fa-wallet"></i></div>
+              </div>
+              <div class="kpi-value" id="kpiTotalCash">Rp 68.200.000</div>
+              <div class="kpi-subtext">
+                <span id="kpiTotalWallets">5 Dompet & Rekening Aktif</span>
+              </div>
+            </div>
+
+            <!-- 3. Pemasukan vs Pengeluaran Bulan Ini -->
+            <div class="kpi-card kpi-coral">
+              <div class="kpi-header">
+                <span class="kpi-label">Arus Kas Bulan Ini</span>
+                <div class="kpi-icon-pill"><i class="fa-solid fa-money-bill-transfer"></i></div>
+              </div>
+              <div class="kpi-value" style="font-size: 19px;" id="kpiCashflowSplit">
+                <span style="color: var(--accent-ocean);">+32.5M</span> / <span style="color: var(--accent-coral);">-18.3M</span>
+              </div>
+              <div class="kpi-subtext">
+                <span class="badge badge-teal">Tabungan: 43.5%</span>
+              </div>
+            </div>
+
+            <!-- 4. Portofolio Investasi -->
+            <div class="kpi-card kpi-gold">
+              <div class="kpi-header">
+                <span class="kpi-label">Aset Investasi</span>
+                <div class="kpi-icon-pill"><i class="fa-solid fa-chart-line"></i></div>
+              </div>
+              <div class="kpi-value" id="kpiTotalInvest">Rp 395.150.000</div>
+              <div class="kpi-subtext">
+                <span class="badge badge-income" id="kpiInvestPnL">+Rp 42.100.000 (+11.9%)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Highlight Target Tabungan (Pilar 4) -->
+          <div class="table-card" style="padding: 16px 20px; margin-bottom: 24px; background: linear-gradient(to right, var(--card-light), var(--canvas-light));">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+              <div style="display: flex; align-items: center; gap: 14px;">
+                <div style="width: 44px; height: 44px; background: #D1FAE5; color: #065F46; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                  <i class="fa-solid fa-piggy-bank"></i>
+                </div>
+                <div>
+                  <div style="font-size: 14px; font-weight: 700;">Alokasi Target Tabungan Terkumpul</div>
+                  <div style="font-size: 18px; font-weight: 800; color: var(--accent-emerald);" id="dashSavingsTotal">Rp 48.500.000</div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="dashSavingsChips">
+                <!-- Diisi dinamis -->
+              </div>
+              <button class="scope-pill" style="border: 1px solid var(--border-light); background: var(--card-light);" onclick="Store.setView('savings')">
+                Kelola Target <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 4 Grafik Analitik (2x2 Grid) -->
+          <div class="charts-grid">
+            <!-- Grafik 1: Monthly Cash Flow -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div class="chart-title">Arus Kas Bulanan (Pemasukan vs Pengeluaran)</div>
+              </div>
+              <div class="chart-canvas-wrapper">
+                <canvas id="chartCashflow"></canvas>
+              </div>
+            </div>
+
+            <!-- Grafik 2: Net Worth Growth -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div class="chart-title">Tren Pertumbuhan Net Worth (Kekayaan Bersih)</div>
+              </div>
+              <div class="chart-canvas-wrapper">
+                <canvas id="chartNetWorth"></canvas>
+              </div>
+            </div>
+
+            <!-- Grafik 3: Asset Allocation -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div class="chart-title">Alokasi Aset (BTC, Saham, Emas, Kas)</div>
+              </div>
+              <div class="chart-canvas-wrapper">
+                <canvas id="chartAllocation"></canvas>
+              </div>
+            </div>
+
+            <!-- Grafik 4: Expense Breakdown -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div class="chart-title">Distribusi Pengeluaran per Kategori</div>
+              </div>
+              <div class="chart-canvas-wrapper">
+                <canvas id="chartExpenseCategory"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabel Aktivitas Transaksi Terakhir -->
+          <div class="table-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+              <h3 style="font-size: 16px; font-weight: 700;">Transaksi Terakhir</h3>
+              <button class="scope-pill" style="border: 1px solid var(--border-light);" onclick="Store.setView('daily')">Lihat Semua</button>
+            </div>
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Waktu</th>
+                    <th>Pencatat</th>
+                    <th>Pos</th>
+                    <th>Kategori</th>
+                    <th>Dompet</th>
+                    <th>Nominal</th>
+                    <th>Keterangan</th>
+                  </tr>
+                </thead>
+                <tbody id="dashRecentTxBody">
+                  <!-- Diisi otomatis oleh App.renderDashboard() -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ===============================================================================
+             VIEW 2: KEUANGAN HARIAN (DAILY FINANCE & LEDGER)
+             =============================================================================== -->
+        <section id="view-daily" class="app-view">
+          <div class="table-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;">
+              <div>
+                <h2 style="font-size: 18px; font-weight: 700;">Buku Transaksi Harian</h2>
+                <p style="font-size: 12.5px; color: var(--text-muted);">Seluruh mutasi pemasukan, pengeluaran, dan transfer dana</p>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button class="scope-pill" style="border: 1px solid var(--border-light); background: var(--card-light);" onclick="App.exportExcel()">
+                  <i class="fa-solid fa-file-excel" style="color: #10B981;"></i> Ekspor Excel
+                </button>
+                <button class="btn-quick-entry" onclick="App.openQuickEntryModal()">
+                  <i class="fa-solid fa-plus"></i> Tambah Transaksi
+                </button>
+              </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div style="display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap;">
+              <input type="text" id="searchTxInput" class="form-input" style="max-width: 280px;" placeholder="Cari keterangan / kategori..." oninput="App.renderDailyLedger()">
+              <select id="filterTxType" class="form-select" style="max-width: 180px;" onchange="App.renderDailyLedger()">
+                <option value="ALL">Semua Jenis</option>
+                <option value="Pemasukan">Pemasukan</option>
+                <option value="Pengeluaran">Pengeluaran</option>
+                <option value="Transfer">Transfer</option>
+                <option value="Bayar Tagihan">Bayar Tagihan</option>
+                <option value="Beli Aset">Beli Aset</option>
+                <option value="Jual Aset">Jual Aset</option>
+              </select>
+            </div>
+
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>ID / Tanggal</th>
+                    <th>Pencatat</th>
+                    <th>Sifat Pos</th>
+                    <th>Jenis</th>
+                    <th>Kategori</th>
+                    <th>Dompet</th>
+                    <th>Nominal</th>
+                    <th>Keterangan</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="dailyTxTableBody">
+                  <!-- Diisi dinamis -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===============================================================================
+             VIEW 3: TAGIHAN RUTIN (RECURRING EXPENSES)
+             =============================================================================== -->
+        <section id="view-bills" class="app-view">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+              <h2 style="font-size: 18px; font-weight: 700;">Tagihan & Beban Rutin Bulanan</h2>
+              <p style="font-size: 12.5px; color: var(--text-muted);">Kontrol pengeluaran rutin keluarga bebas denda dan tanpa double-pay</p>
+            </div>
+            <button class="btn-quick-entry" onclick="App.openAddBillModal()">
+              <i class="fa-solid fa-plus"></i> Tambah Tagihan
+            </button>
+          </div>
+
+          <!-- Cards Grid Tagihan -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;" id="billsCardGrid">
+            <!-- Diisi otomatis oleh App.renderBills() -->
+          </div>
+        </section>
+
+        <!-- ===============================================================================
+             VIEW 4: ANGGARAN BULANAN (MONTHLY BUDGET)
+             =============================================================================== -->
+        <section id="view-budget" class="app-view">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+              <h2 style="font-size: 18px; font-weight: 700;">Anggaran Belanja Bulanan</h2>
+              <p style="font-size: 12.5px; color: var(--text-muted);">Kendalikan pengeluaran agar tidak bocor melampaui pagu bulanan</p>
+            </div>
+            <button class="btn-quick-entry" onclick="App.openAddBudgetModal()">
+              <i class="fa-solid fa-plus"></i> Pasang Anggaran
+            </button>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;" id="budgetCardGrid">
+            <!-- Diisi otomatis oleh App.renderBudget() -->
+          </div>
+        </section>
+
+        <!-- ===============================================================================
+             VIEW 5: TARGET TABUNGAN (SAVINGS GOALS)
+             =============================================================================== -->
+        <section id="view-savings" class="app-view">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+              <h2 style="font-size: 18px; font-weight: 700;">Target Tabungan & Rencana Finansial</h2>
+              <p style="font-size: 12.5px; color: var(--text-muted);">Alokasi tabungan keluarga (Dana Darurat, Rumah, Liburan) anti-double counting</p>
+            </div>
+            <button class="btn-quick-entry" onclick="App.openAddGoalModal()">
+              <i class="fa-solid fa-plus"></i> Buat Target Baru
+            </button>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px;" id="savingsCardGrid">
+            <!-- Diisi otomatis oleh App.renderSavings() -->
+          </div>
+        </section>
+
+        <!-- ===============================================================================
+             VIEW 6: PORTOFOLIO INVESTASI (MULTI-ASSET TRACKER)
+             =============================================================================== -->
+        <section id="view-invest" class="app-view">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+              <h2 style="font-size: 18px; font-weight: 700;">Portofolio Investasi Multi-Aset</h2>
+              <p style="font-size: 12.5px; color: var(--text-muted);">Pelacakan kepemilikan Bitcoin, Saham, Emas, dan Kas Investasi</p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <button class="btn-quick-entry" onclick="App.openBuyAssetModal()">
+                <i class="fa-solid fa-cart-plus"></i> Beli Aset
+              </button>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Instrumen Aset</th>
+                    <th>Jenis</th>
+                    <th>Kepemilikan</th>
+                    <th>Total Unit</th>
+                    <th>Harga Rata-Rata Beli</th>
+                    <th>Harga Pasar Terkini</th>
+                    <th>Nilai Pasar Total</th>
+                    <th>Laba / Rugi (PnL)</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="investTableBody">
+                  <!-- Diisi dinamis -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===============================================================================
+             VIEW 7: UTANG & PIUTANG
+             =============================================================================== -->
+        <section id="view-debts" class="app-view">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+              <h2 style="font-size: 18px; font-weight: 700;">Utang & Piutang Keluarga</h2>
+              <p style="font-size: 12.5px; color: var(--text-muted);">Penyesuaian liabilitas dan hak tagih terhadap nilai Net Worth</p>
+            </div>
+            <button class="btn-quick-entry" onclick="App.openAddDebtModal()">
+              <i class="fa-solid fa-plus"></i> Catat Utang/Piutang
+            </button>
+          </div>
+
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Pihak Kedua</th>
+                    <th>Jenis</th>
+                    <th>Sifat</th>
+                    <th>Nominal Awal</th>
+                    <th>Terbayar</th>
+                    <th>Sisa Nominal</th>
+                    <th>Jatuh Tempo</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="debtsTableBody">
+                  <!-- Diisi dinamis -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===============================================================================
+             VIEW 8: LAPORAN & CETAK PDF
+             =============================================================================== -->
+        <section id="view-reports" class="app-view">
+          <div class="table-card" style="max-width: 800px; margin: 0 auto;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h2 style="font-size: 20px; font-weight: 800;">Laporan Keuangan Resmi Bulanan</h2>
+              <p style="font-size: 13px; color: var(--text-muted);">Unduh lembar laporan keuangan siap cetak atau ekspor data lengkap</p>
+            </div>
+
+            <div style="display: flex; gap: 14px; justify-content: center; margin-bottom: 28px;">
+              <button class="btn-quick-entry" style="background: #10B981;" onclick="App.exportPDF()">
+                <i class="fa-solid fa-file-pdf"></i> Unduh Laporan PDF
+              </button>
+              <button class="btn-quick-entry" style="background: #0284C7;" onclick="App.exportExcel()">
+                <i class="fa-solid fa-file-excel"></i> Unduh Data Excel
+              </button>
+            </div>
+
+            <div style="background: var(--canvas-light); border: 1px dashed var(--border-light); border-radius: 12px; padding: 24px; font-size: 13px;">
+              <h4 style="margin-bottom: 10px; font-weight: 700;">Laporan PDF Bulanan mencakup:</h4>
+              <ul style="padding-left: 20px; line-height: 1.8; color: var(--text-muted);">
+                <li>Ringkasan Eksekutif Arus Kas (Pemasukan, Pengeluaran, Rasio Tabungan)</li>
+                <li>Neraca Saldo Seluruh Dompet & Rekening</li>
+                <li>Rincian Pengeluaran Sifat Pos: Suami, Istri, dan Rumah Tangga Bersama</li>
+                <li>Status Pemenuhan Tagihan Rutin Keluarga</li>
+                <li>Portofolio Aset & Rekapitulasi Net Worth</li>
+                <li>Lembar Tanda Tangan Pengesahan Suami & Istri</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===============================================================================
+             VIEW 9: PENGATURAN & BACKUP GOOGLE DRIVE
+             =============================================================================== -->
+        <section id="view-settings" class="app-view">
+          <div class="table-card" style="max-width: 760px; margin: 0 auto;">
+            <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 20px;">Pengaturan Aplikasi & Cloud Sync</h2>
+
+            <form id="settingsForm" onsubmit="App.saveSettings(event)">
+              <div class="form-group">
+                <label class="form-label">URL Backend Google Apps Script (GAS_URL)</label>
+                <input type="url" id="settingGasUrl" class="form-input" placeholder="https://script.google.com/macros/s/XXXX/exec">
+                <small style="color: var(--text-muted); font-size: 11.5px;">Masukkan URL Deployment Web App GAS Anda untuk sinkronisasi Google Sheets secara live.</small>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Nama Aplikasi</label>
+                <input type="text" id="settingAppName" class="form-input" value="Couple Finance – Family Financial Management">
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Tema Tampilan</label>
+                  <select id="settingTheme" class="form-select" onchange="Store.applyTheme(this.value)">
+                    <option value="light">Light Mode (Warm Ivory)</option>
+                    <option value="dark">Dark Mode (Deep Slate)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Siklus Backup Database</label>
+                  <select class="form-select" disabled>
+                    <option>Setiap 7 Hari Sekali (Otomatis)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button type="submit" class="btn-quick-entry">Simpan Pengaturan</button>
+                <button type="button" class="scope-pill" style="border: 1px solid var(--border-light); background: var(--card-light);" onclick="App.triggerManualBackup()">
+                  <i class="fa-solid fa-cloud-arrow-up"></i> Backup Database Sekarang
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- =====================================================================================
+       3. MODAL DIALOGS INTERAKTIF (<5s QUICK ENTRY, PAY BILL, SETOR TABUNGAN, DLL)
+       ===================================================================================== -->
+  
+  <!-- Modal Quick Entry (<5 Detik) -->
+  <div id="modalQuickEntry" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Catat Transaksi Cepat</h3>
+        <button class="modal-close-btn" onclick="App.closeModals()">&times;</button>
+      </div>
+      <form id="quickEntryForm" onsubmit="App.submitQuickEntry(event)">
+        <div class="modal-body">
+          <!-- 5 Tabs Pilihan Jenis -->
+          <div class="action-type-tabs">
+            <button type="button" class="action-tab-btn active" data-type="Pengeluaran" onclick="App.setFormType('Pengeluaran')">Pengeluaran</button>
+            <button type="button" class="action-tab-btn" data-type="Pemasukan" onclick="App.setFormType('Pemasukan')">Pemasukan</button>
+            <button type="button" class="action-tab-btn" data-type="Transfer" onclick="App.setFormType('Transfer')">Transfer</button>
+            <button type="button" class="action-tab-btn" data-type="Beli Aset" onclick="App.setFormType('Beli Aset')">Beli Aset</button>
+            <button type="button" class="action-tab-btn" data-type="Bayar Tagihan" onclick="App.setFormType('Bayar Tagihan')">Tagihan</button>
+          </div>
+
+          <!-- Nominal Besar -->
+          <div class="currency-big-box">
+            <span class="currency-prefix">Rp</span>
+            <input type="text" id="entryNominal" class="currency-big-input" placeholder="0" required oninput="App.formatCurrencyInput(this)">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Pencatat</label>
+              <select id="entryPencatat" class="form-select">
+                <option value="Suami">Suami</option>
+                <option value="Istri">Istri</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sifat Pos</label>
+              <select id="entrySifat" class="form-select">
+                <option value="Rumah Tangga Bersama">Rumah Tangga Bersama</option>
+                <option value="Pribadi Suami">Pribadi Suami</option>
+                <option value="Pribadi Istri">Pribadi Istri</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Kategori</label>
+              <select id="entryKategori" class="form-select">
+                <!-- Diisi otomatis dari kategori master -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dompet Asal (Sumber Dana)</label>
+              <select id="entryDompetAsal" class="form-select">
+                <!-- Diisi otomatis dari dompet rekening -->
+              </select>
+            </div>
+          </div>
+
+          <!-- Dompet Tujuan (Khusus Transfer) -->
+          <div class="form-group" id="groupDompetTujuan" style="display: none;">
+            <label class="form-label">Dompet Tujuan (Penerima Dana)</label>
+            <select id="entryDompetTujuan" class="form-select">
+              <!-- Diisi otomatis -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Keterangan (Opsional)</label>
+            <input type="text" id="entryKeterangan" class="form-input" placeholder="Contoh: Belanja dapur di supermarket">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="scope-pill" style="border: 1px solid var(--border-light);" onclick="App.closeModals()">Batal</button>
+          <button type="submit" class="btn-quick-entry" id="btnSubmitEntry">Simpan Transaksi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Konfirmasi Bayar Tagihan (1-Click Pay) -->
+  <div id="modalPayBill" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Konfirmasi Bayar Tagihan</h3>
+        <button class="modal-close-btn" onclick="App.closeModals()">&times;</button>
+      </div>
+      <form id="payBillForm" onsubmit="App.submitPayBill(event)">
+        <div class="modal-body">
+          <input type="hidden" id="payBillId">
+          <div style="font-size: 15px; font-weight: 700; margin-bottom: 12px;" id="payBillName">IndiHome 100Mbps</div>
+          
+          <div class="form-group">
+            <label class="form-label">Nominal Pembayaran (Rp)</label>
+            <input type="number" id="payBillAmount" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Bayar Menggunakan Dompet / Rekening</label>
+            <select id="payBillWallet" class="form-select">
+              <!-- Diisi dinamis -->
+            </select>
+          </div>
+
+          <div style="background: #D1FAE5; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #065F46;">
+            <i class="fa-solid fa-lock"></i> Saldo dompet akan terpotong secara aman tanpa risiko pencatatan ganda.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="scope-pill" onclick="App.closeModals()">Batal</button>
+          <button type="submit" class="btn-quick-entry" style="background: var(--accent-amber);">Konfirmasi Bayar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Setor/Tarik Target Tabungan -->
+  <div id="modalSavingsAction" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" id="savingsActionTitle">Setor Alokasi Tabungan</h3>
+        <button class="modal-close-btn" onclick="App.closeModals()">&times;</button>
+      </div>
+      <form id="savingsActionForm" onsubmit="App.submitSavingsAction(event)">
+        <div class="modal-body">
+          <input type="hidden" id="savingsActionGoalId">
+          <input type="hidden" id="savingsActionType" value="SETORAN">
+
+          <div style="font-size: 15px; font-weight: 700; margin-bottom: 12px;" id="savingsActionGoalName">Dana Darurat</div>
+
+          <div class="form-group">
+            <label class="form-label">Nominal (Rp)</label>
+            <input type="number" id="savingsActionAmount" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Dompet Terhubung</label>
+            <select id="savingsActionWallet" class="form-select">
+              <!-- Diisi dinamis -->
+            </select>
+          </div>
+
+          <div style="background: #FEF3C7; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #92400E;">
+            <i class="fa-solid fa-info-circle"></i> Ini adalah pemindahan alokasi dana virtual. Tidak dianggap sebagai pengeluaran konsumtif dan tidak menggandakan aset Net Worth.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="scope-pill" onclick="App.closeModals()">Batal</button>
+          <button type="submit" class="btn-quick-entry" id="btnSubmitSavings">Konfirmasi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Update Harga Pasar Investasi -->
+  <div id="modalPriceUpdate" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Perbarui Harga Pasar Aset</h3>
+        <button class="modal-close-btn" onclick="App.closeModals()">&times;</button>
+      </div>
+      <form id="priceUpdateForm" onsubmit="App.submitPriceUpdate(event)">
+        <div class="modal-body">
+          <input type="hidden" id="priceUpdateAssetId">
+          <div style="font-size: 15px; font-weight: 700; margin-bottom: 12px;" id="priceUpdateAssetName">Bitcoin</div>
+          <div class="form-group">
+            <label class="form-label">Harga Pasar Terkini per Unit (Rp)</label>
+            <input type="number" id="priceUpdateValue" class="form-input" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="scope-pill" onclick="App.closeModals()">Batal</button>
+          <button type="submit" class="btn-quick-entry">Perbarui Harga</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Mobile Bottom Sticky Navigation (375px) -->
+  <div class="mobile-bottom-nav">
+    <div class="bottom-nav-item active" data-view="dashboard" onclick="Store.setView('dashboard')">
+      <i class="fa-solid fa-chart-pie"></i>
+      <span>Dashboard</span>
+    </div>
+    <div class="bottom-nav-item" data-view="daily" onclick="Store.setView('daily')">
+      <i class="fa-solid fa-receipt"></i>
+      <span>Transaksi</span>
+    </div>
+    <div class="bottom-nav-item" data-view="savings" onclick="Store.setView('savings')">
+      <i class="fa-solid fa-piggy-bank"></i>
+      <span>Tabungan</span>
+    </div>
+    <div class="bottom-nav-item" data-view="bills" onclick="Store.setView('bills')">
+      <i class="fa-solid fa-calendar-check"></i>
+      <span>Tagihan</span>
+    </div>
+    <div class="bottom-nav-item" data-view="invest" onclick="Store.setView('invest')">
+      <i class="fa-solid fa-arrow-trend-up"></i>
+      <span>Investasi</span>
+    </div>
+  </div>
+
+  <!-- Toast Notifications Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Application Logic Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
