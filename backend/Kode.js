@@ -296,6 +296,16 @@ function dispatchPost_(body) {
         return handleSimpanPengaturan_(data, actor);
       });
 
+    case 'gantiFotoProfil':
+      return withLock_(function() {
+        return handleGantiFotoProfil_(data, actor);
+      });
+
+    case 'tambahKategori':
+      return withLock_(function() {
+        return handleTambahKategori_(data, actor);
+      });
+
     case 'backupDatabase':
       return handleBackupDatabase_(actor);
 
@@ -1190,4 +1200,44 @@ function handleBackupDatabase_(actor) {
   } catch (e) {
     return { success: false, message: 'Gagal membuat backup: ' + e.message };
   }
+}
+
+function handleGantiFotoProfil_(data, actor) {
+  const userId = data.user_id;
+  const avatarUrl = data.avatar_url;
+  if (!userId || !avatarUrl) return { success: false, message: 'Data avatar tidak lengkap.' };
+
+  const sh = getSheet_(CONFIG.SHEETS.pengguna);
+  const rows = sh.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(userId)) {
+      sh.getRange(i + 1, 6).setValue(avatarUrl);
+      bumpCache();
+      logAudit_(actor, 'UPDATE_AVATAR', CONFIG.SHEETS.pengguna, userId, null, { avatarUrl });
+      return { success: true, message: 'Foto profil berhasil diperbarui!' };
+    }
+  }
+  return { success: false, message: 'Pengguna tidak ditemukan.' };
+}
+
+function handleTambahKategori_(data, actor) {
+  const nama = data.nama_kategori;
+  const tipe = data.tipe || 'Pengeluaran';
+  if (!nama) return { success: false, message: 'Nama kategori wajib diisi.' };
+
+  const id = 'KAT-' + acak_(4).toUpperCase();
+  const sh = getSheet_(CONFIG.SHEETS.kategori);
+  sh.appendRow([
+    id,
+    nama,
+    tipe,
+    data.kelompok_default || 'Rumah Tangga Bersama',
+    data.ikon || 'tag',
+    data.warna_badge || '#0E4D43',
+    'TRUE'
+  ]);
+
+  bumpCache();
+  logAudit_(actor, 'INSERT', CONFIG.SHEETS.kategori, id, null, data);
+  return { success: true, message: 'Kategori berhasil ditambahkan!', id_kategori: id };
 }

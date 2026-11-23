@@ -27,13 +27,16 @@ const App = {
       this.handleStoreEvent(eventType, state, payload);
     });
 
-    // 4. Render Awal Antarmuka
+    // 4. Update Privacy Icon
+    this.updatePrivacyIcon();
+
+    // 5. Render Awal Antarmuka
     this.renderAll();
 
-    // 5. Inisialisasi Chart.js
+    // 6. Inisialisasi Chart.js
     this.initCharts();
 
-    // 6. Pasang Shortcut Keyboard (Ctrl+K, Esc)
+    // 7. Pasang Shortcut Keyboard (Ctrl+K, Esc)
     window.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
@@ -150,6 +153,13 @@ const App = {
     if (nameEl) nameEl.textContent = u.name;
     if (avatarEl && u.avatar) avatarEl.src = u.avatar;
 
+    const settingAvatarSuami = document.getElementById('settingAvatarSuami');
+    const settingAvatarIstri = document.getElementById('settingAvatarIstri');
+    const u1 = Store.state.pengguna.find(x => x.id_pengguna === 'USR-01');
+    const u2 = Store.state.pengguna.find(x => x.id_pengguna === 'USR-02');
+    if (settingAvatarSuami && u1 && u1.avatar_url) settingAvatarSuami.src = u1.avatar_url;
+    if (settingAvatarIstri && u2 && u2.avatar_url) settingAvatarIstri.src = u2.avatar_url;
+
     const pencatatSelect = document.getElementById('entryPencatat');
     if (pencatatSelect) pencatatSelect.value = u.name;
   },
@@ -164,9 +174,34 @@ const App = {
       this.updateFilterScopeUI(state.filterScope);
       this.renderAll();
       this.updateChartsData();
+    } else if (eventType === 'PRIVACY_TOGGLED') {
+      this.updatePrivacyIcon();
+      this.renderAll();
+    } else if (eventType === 'USER_AVATAR_UPDATED') {
+      this.updateUserProfileUI();
     } else if (eventType === 'STATE_UPDATED' || eventType === 'DATA_SYNCED' || eventType === 'TRANSACTION_ADDED') {
       this.renderAll();
       this.updateChartsData();
+    }
+  },
+
+  togglePrivacy() {
+    Store.togglePrivacy();
+    this.updatePrivacyIcon();
+    this.renderAll();
+    this.showToast(Store.state.isPrivacyMode ? 'Sensor angka aktif (Mata Tertutup)' : 'Angka ditampilkan (Mata Terbuka)', 'info');
+  },
+
+  updatePrivacyIcon() {
+    const icon = document.getElementById('privacyIcon');
+    const btn = document.getElementById('btnPrivacyToggle');
+    if (!icon) return;
+    if (Store.state.isPrivacyMode) {
+      icon.className = 'fa-solid fa-eye-slash';
+      if (btn) btn.title = 'Tampilkan Angka (Klik untuk melihat nominal asli)';
+    } else {
+      icon.className = 'fa-solid fa-eye';
+      if (btn) btn.title = 'Sembunyikan Angka (Klik untuk menyamarkan nominal)';
     }
   },
 
@@ -229,7 +264,10 @@ const App = {
     this.populateDropdowns();
   },
 
-  formatIDR(num) {
+  formatIDR(num, bypassPrivacy = false) {
+    if (!bypassPrivacy && Store && Store.state && Store.state.isPrivacyMode) {
+      return 'Rp ••••••••';
+    }
     return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
   },
 
@@ -261,10 +299,17 @@ const App = {
 
     const cashflowEl = document.getElementById('kpiCashflowSplit');
     if (cashflowEl) {
-      cashflowEl.innerHTML = `
-        <span style="color: var(--accent-ocean);">+${(incomeBln / 1e6).toFixed(1)}M</span> / 
-        <span style="color: var(--accent-coral);">${(expenseBln / 1e6).toFixed(1)}M</span>
-      `;
+      if (Store.state.isPrivacyMode) {
+        cashflowEl.innerHTML = `
+          <span style="color: var(--accent-ocean);">+••••••</span> / 
+          <span style="color: var(--accent-coral);">-••••••</span>
+        `;
+      } else {
+        cashflowEl.innerHTML = `
+          <span style="color: var(--accent-ocean);">+${(incomeBln / 1e6).toFixed(1)}M</span> / 
+          <span style="color: var(--accent-coral);">${(expenseBln / 1e6).toFixed(1)}M</span>
+        `;
+      }
     }
 
     // Highlight Target Tabungan Strip
@@ -494,9 +539,14 @@ const App = {
             </span>
           </td>
           <td>
-            <button class="scope-pill" style="padding: 4px 10px; font-size: 11.5px; border: 1px solid var(--border-light);" onclick="App.openPriceUpdateModal('${p.id_aset}', '${p.nama_aset}', ${p.harga_pasar_terkini})">
-              Update Harga
-            </button>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button class="scope-pill" style="padding: 4px 8px; font-size: 11px; border: 1px solid var(--border-light);" onclick="App.openPriceUpdateModal('${p.id_aset}', '${p.nama_aset}', ${p.harga_pasar_terkini})">
+                Update
+              </button>
+              <button class="scope-pill" style="padding: 4px 8px; font-size: 11px; border: 1px solid var(--accent-coral); color: var(--accent-coral); background: #FFF;" onclick="App.openSellAssetModal('${p.id_aset}', '${p.nama_aset}', ${p.total_unit}, ${p.harga_pasar_terkini})">
+                Jual
+              </button>
+            </div>
           </td>
         </tr>
       `;
@@ -530,26 +580,47 @@ const App = {
   },
 
   populateDropdowns() {
+    const allCategories = Store.state.kategori;
+    const expenseCategories = allCategories.filter(k => k.tipe === 'Pengeluaran');
+
+    // 1. Kategori Transaksi Cepat
     const katSelect = document.getElementById('entryKategori');
     if (katSelect) {
-      katSelect.innerHTML = Store.state.kategori.map(k => `
+      katSelect.innerHTML = allCategories.map(k => `
         <option value="${k.nama_kategori}">${k.nama_kategori}</option>
       `).join('');
     }
 
-    const dompetSelectAsal = document.getElementById('entryDompetAsal');
-    const dompetSelectTujuan = document.getElementById('entryDompetTujuan');
-    const payBillWallet = document.getElementById('payBillWallet');
-    const savingsWallet = document.getElementById('savingsActionWallet');
+    // 2. Kategori Tagihan Rutin & Anggaran
+    const billCatSelect = document.getElementById('billCategory');
+    if (billCatSelect) {
+      billCatSelect.innerHTML = expenseCategories.map(k => `
+        <option value="${k.nama_kategori}">${k.nama_kategori}</option>
+      `).join('');
+    }
 
+    const budgetCatSelect = document.getElementById('budgetCategory');
+    if (budgetCatSelect) {
+      budgetCatSelect.innerHTML = expenseCategories.map(k => `
+        <option value="${k.nama_kategori}">${k.nama_kategori}</option>
+      `).join('');
+    }
+
+    // 3. Dropdown Dompet / Rekening
     const dompetOptions = Store.state.dompet.map(d => `
-      <option value="${d.id_dompet}">${d.nama_dompet} (${this.formatIDR(d.saldo_berjalan)})</option>
+      <option value="${d.id_dompet}">${d.nama_dompet} (${this.formatIDR(d.saldo_berjalan, true)})</option>
     `).join('');
 
-    if (dompetSelectAsal) dompetSelectAsal.innerHTML = dompetOptions;
-    if (dompetSelectTujuan) dompetSelectTujuan.innerHTML = dompetOptions;
-    if (payBillWallet) payBillWallet.innerHTML = dompetOptions;
-    if (savingsWallet) savingsWallet.innerHTML = dompetOptions;
+    const dompetIds = [
+      'entryDompetAsal', 'entryDompetTujuan', 'payBillWallet',
+      'savingsActionWallet', 'billWallet', 'buyAssetWallet',
+      'sellAssetWallet', 'payDebtWallet'
+    ];
+
+    dompetIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = dompetOptions;
+    });
 
     const settingGasUrl = document.getElementById('settingGasUrl');
     if (settingGasUrl) settingGasUrl.value = CONFIG.GAS_URL;
@@ -827,6 +898,600 @@ const App = {
     } else {
       this.showToast('Error: ' + res.message, 'error');
     }
+  },
+
+  // =====================================================================================
+  // MODUL GANTI FOTO PROFIL & AVATAR SUAMI / ISTRI
+  // =====================================================================================
+  avatarPresets: [
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Suami&backgroundColor=b6e3f4',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=c0aede',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Jack&backgroundColor=d1d4f9',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Oliver&backgroundColor=ffd5dc',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Istri&backgroundColor=ffdfbf',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Bella&backgroundColor=ffd5dc',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Chloe&backgroundColor=c0aede',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Luna&backgroundColor=b6e3f4'
+  ],
+
+  selectedAvatarUrl: '',
+
+  openChangeAvatarModal(userId) {
+    this.closeModals();
+    const currentUserId = userId || (Store.state.user ? Store.state.user.id : 'USR-01');
+    const userSelect = document.getElementById('avatarUserId');
+    if (userSelect) userSelect.value = currentUserId;
+
+    this.onAvatarUserChange(currentUserId);
+    document.getElementById('modalChangeAvatar').classList.add('active');
+  },
+
+  onAvatarUserChange(userId) {
+    let currentAvatar = '';
+    const userObj = Store.state.pengguna.find(u => u.id_pengguna === userId);
+    if (userObj && userObj.avatar_url) {
+      currentAvatar = userObj.avatar_url;
+    } else if (Store.state.user && Store.state.user.id === userId) {
+      currentAvatar = Store.state.user.avatar;
+    } else {
+      currentAvatar = userId === 'USR-02' 
+        ? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Istri' 
+        : 'https://api.dicebear.com/7.x/avataaars/svg?seed=Suami';
+    }
+
+    this.selectedAvatarUrl = currentAvatar;
+    const preview = document.getElementById('avatarPreviewImg');
+    if (preview) preview.src = currentAvatar;
+
+    const urlInput = document.getElementById('avatarCustomUrl');
+    if (urlInput) urlInput.value = '';
+
+    this.renderAvatarPresets(currentAvatar);
+  },
+
+  renderAvatarPresets(activeUrl) {
+    const container = document.getElementById('avatarPresetContainer');
+    if (!container) return;
+
+    container.innerHTML = this.avatarPresets.map(url => {
+      const isSelected = (url === activeUrl);
+      return `
+        <div class="avatar-preset-item ${isSelected ? 'selected' : ''}" onclick="App.selectPresetAvatar('${url}')">
+          <img src="${url}" alt="Avatar Option">
+        </div>
+      `;
+    }).join('');
+  },
+
+  selectPresetAvatar(url) {
+    this.selectedAvatarUrl = url;
+    const preview = document.getElementById('avatarPreviewImg');
+    if (preview) preview.src = url;
+
+    const urlInput = document.getElementById('avatarCustomUrl');
+    if (urlInput) urlInput.value = '';
+
+    document.querySelectorAll('.avatar-preset-item').forEach(el => {
+      if (el.querySelector('img')?.src === url) el.classList.add('selected');
+      else el.classList.remove('selected');
+    });
+  },
+
+  previewCustomAvatarUrl(url) {
+    if (!url) return;
+    this.selectedAvatarUrl = url;
+    const preview = document.getElementById('avatarPreviewImg');
+    if (preview) preview.src = url;
+
+    document.querySelectorAll('.avatar-preset-item').forEach(el => el.classList.remove('selected'));
+  },
+
+  handleAvatarFileUpload(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      this.showToast('Harap pilih berkas gambar (JPG, PNG, WebP)', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (loadEvt) => {
+      const base64Data = loadEvt.target.result;
+      this.selectedAvatarUrl = base64Data;
+      const preview = document.getElementById('avatarPreviewImg');
+      if (preview) preview.src = base64Data;
+      document.querySelectorAll('.avatar-preset-item').forEach(el => el.classList.remove('selected'));
+      this.showToast('Foto berhasil dimuat!', 'info');
+    };
+    reader.readAsDataURL(file);
+  },
+
+  async submitChangeAvatar(e) {
+    e.preventDefault();
+    const userId = document.getElementById('avatarUserId').value;
+    const newAvatar = this.selectedAvatarUrl;
+
+    if (!newAvatar) {
+      this.showToast('Pilih atau unggah foto avatar terlebih dahulu', 'warning');
+      return;
+    }
+
+    this.closeModals();
+    this.showToast('Menyimpan foto profil...', 'info');
+
+    // Update Store secara reaktif
+    Store.updateUserAvatar(userId, newAvatar);
+    this.updateUserProfileUI();
+
+    const res = await API.post('gantiFotoProfil', {
+      user_id: userId,
+      avatar_url: newAvatar
+    });
+
+    if (res.success) {
+      this.showToast('Foto profil berhasil diperbarui!', 'success');
+      Store.fetchFreshData();
+    } else {
+      this.showToast('Gagal simpan foto: ' + res.message, 'warning');
+    }
+  },
+
+  // =====================================================================================
+  // MODUL TAGIHAN RUTIN (RECURRING EXPENSES)
+  // =====================================================================================
+  openAddBillModal() {
+    this.closeModals();
+    const form = document.getElementById('addBillForm');
+    if (form) form.reset();
+    document.getElementById('modalAddBill').classList.add('active');
+  },
+
+  async submitAddBill(e) {
+    e.preventDefault();
+    const payload = {
+      id_tagihan: 'BIL-' + Date.now().toString().slice(-6),
+      nama_tagihan: document.getElementById('billName').value,
+      id_kategori: document.getElementById('billCategory').value,
+      tipe_nominal: document.getElementById('billTypeNominal').value,
+      nominal_estimasi: Number(document.getElementById('billAmount').value) || 0,
+      tanggal_jatuh_tempo: Number(document.getElementById('billDueDate').value) || 10,
+      frekuensi: document.getElementById('billFrequency').value,
+      sifat_tagihan: document.getElementById('billScope').value,
+      id_dompet_default: document.getElementById('billWallet').value,
+      status_bulan_ini: 'Menunggu Pembayaran',
+      status_aktif: 'TRUE'
+    };
+
+    this.closeModals();
+    this.showToast('Menyimpan tagihan rutin...', 'info');
+
+    Store.state.tagihanRutin.push(payload);
+    Store.notify('STATE_UPDATED');
+
+    const res = await API.post('kelolaTagihanRutin', {
+      action_type: 'TAMBAH',
+      tagihan: payload
+    });
+
+    if (res.success) {
+      this.showToast('Tagihan rutin berhasil ditambahkan!', 'success');
+      Store.fetchFreshData();
+    } else {
+      this.showToast('Error: ' + res.message, 'error');
+    }
+  },
+
+  // =====================================================================================
+  // MODUL ANGGARAN BULANAN (MONTHLY BUDGET)
+  // =====================================================================================
+  openAddBudgetModal() {
+    this.closeModals();
+    const periodInput = document.getElementById('budgetPeriod');
+    if (periodInput) periodInput.value = new Date().toISOString().slice(0, 7);
+    document.getElementById('modalAddBudget').classList.add('active');
+  },
+
+  async submitAddBudget(e) {
+    e.preventDefault();
+    const payload = {
+      id_anggaran: 'BDG-' + Date.now().toString().slice(-6),
+      periode_bulan: document.getElementById('budgetPeriod').value,
+      id_kategori: document.getElementById('budgetCategory').value,
+      nominal_anggaran: Number(document.getElementById('budgetAmount').value) || 0,
+      sifat_anggaran: document.getElementById('budgetScope').value,
+      realisasi: 0,
+      persentase: 0,
+      status_warning: 'AMAN'
+    };
+
+    this.closeModals();
+    this.showToast('Menyimpan anggaran belanja...', 'info');
+
+    // Update atau tambah di Store
+    const existingIdx = Store.state.anggaran.findIndex(
+      b => b.periode_bulan === payload.periode_bulan && b.id_kategori === payload.id_kategori
+    );
+    if (existingIdx >= 0) {
+      payload.realisasi = Store.state.anggaran[existingIdx].realisasi;
+      payload.persentase = payload.nominal_anggaran > 0 ? (payload.realisasi / payload.nominal_anggaran) * 100 : 0;
+      Store.state.anggaran[existingIdx] = payload;
+    } else {
+      Store.state.anggaran.push(payload);
+    }
+    Store.notify('STATE_UPDATED');
+
+    const res = await API.post('kelolaAnggaran', {
+      action_type: 'SIMPAN',
+      anggaran: payload
+    });
+
+    if (res.success) {
+      this.showToast('Anggaran belanja berhasil dipasang!', 'success');
+      Store.fetchFreshData();
+    } else {
+      this.showToast('Error: ' + res.message, 'error');
+    }
+  },
+
+  // =====================================================================================
+  // MODUL TARGET TABUNGAN (SAVINGS GOALS)
+  // =====================================================================================
+  openAddGoalModal() {
+    this.closeModals();
+    const nextYear = new Date();
+    nextYear.setFullYear(nextYear.getFullYear() + 1);
+    const dateInput = document.getElementById('goalTargetDate');
+    if (dateInput) dateInput.value = nextYear.toISOString().slice(0, 10);
+    document.getElementById('modalAddGoal').classList.add('active');
+  },
+
+  async submitAddGoal(e) {
+    e.preventDefault();
+    const targetNominal = Number(document.getElementById('goalTargetAmount').value) || 0;
+    const payload = {
+      id_target: 'GOL-' + Date.now().toString().slice(-6),
+      nama_target: document.getElementById('goalName').value,
+      kategori_target: document.getElementById('goalCategory').value,
+      sifat_target: document.getElementById('goalScope').value,
+      nominal_target: targetNominal,
+      nominal_terkumpul: 0,
+      sisa_kebutuhan: targetNominal,
+      target_tanggal_selesai: document.getElementById('goalTargetDate').value,
+      persentase_progress: 0,
+      status: 'AKTIF'
+    };
+
+    this.closeModals();
+    this.showToast('Membuat target tabungan baru...', 'info');
+
+    Store.state.targetTabungan.push(payload);
+    Store.notify('STATE_UPDATED');
+
+    const res = await API.post('kelolaTargetTabungan', {
+      action_type: 'TAMBAH',
+      target: payload
+    });
+
+    if (res.success) {
+      this.showToast('Target tabungan berhasil dibuat!', 'success');
+      Store.fetchFreshData();
+    } else {
+      this.showToast('Error: ' + res.message, 'error');
+    }
+  },
+
+  // =====================================================================================
+  // MODUL PORTOFOLIO INVESTASI (BELI & JUAL ASET)
+  // =====================================================================================
+  openBuyAssetModal() {
+    this.closeModals();
+    const form = document.getElementById('buyAssetForm');
+    if (form) form.reset();
+    document.getElementById('modalBuyAsset').classList.add('active');
+  },
+
+  onBuyAssetTypeChange(type) {
+    const nameInput = document.getElementById('buyAssetName');
+    if (!nameInput) return;
+    if (type === 'Bitcoin (BTC)') nameInput.value = 'Bitcoin (BTC)';
+    else if (type === 'Emas (Gold)') nameInput.value = 'Logam Mulia Antam';
+    else if (type === 'Saham') nameInput.placeholder = 'Contoh: BBCA / BBRI / TLKM';
+  },
+
+  async submitBuyAsset(e) {
+    e.preventDefault();
+    const jenis = document.getElementById('buyAssetType').value;
+    const nama = document.getElementById('buyAssetName').value;
+    const kepemilikan = document.getElementById('buyAssetOwnership').value;
+    const units = Number(document.getElementById('buyAssetUnits').value) || 0;
+    const price = Number(document.getElementById('buyAssetPrice').value) || 0;
+    const fee = Number(document.getElementById('buyAssetFee').value) || 0;
+    const walletId = document.getElementById('buyAssetWallet').value;
+    const totalCost = (units * price) + fee;
+
+    this.closeModals();
+    this.showToast('Memproses pembelian aset investasi...', 'info');
+
+    // Catat mutasi kas operasional keluar
+    const trxOpt = {
+      id_transaksi: 'TRX-AST-BUY-' + Date.now(),
+      tanggal: new Date().toISOString().slice(0, 10),
+      waktu: new Date().toTimeString().slice(0, 5),
+      pencatat: Store.state.user ? Store.state.user.name : 'Suami',
+      sifat_transaksi: kepemilikan === 'Bersama' ? 'Rumah Tangga Bersama' : kepemilikan,
+      jenis_transaksi: 'Beli Aset',
+      id_kategori: 'Investasi',
+      id_dompet_asal: walletId,
+      nominal: totalCost,
+      keterangan: `Beli aset ${nama} (${units} unit @ ${this.formatIDR(price, true)})`,
+      status: 'VALID'
+    };
+    Store.addOptimisticTransaction(trxOpt);
+
+    // Update portofolio lokal
+    const existing = Store.state.portofolio.find(p => p.nama_aset.toLowerCase() === nama.toLowerCase());
+    if (existing) {
+      const oldUnit = Number(existing.total_unit) || 0;
+      const oldModal = Number(existing.total_modal) || 0;
+      const newUnit = oldUnit + units;
+      const newModal = oldModal + totalCost;
+      existing.total_unit = newUnit;
+      existing.total_modal = newModal;
+      existing.harga_rata_rata = newUnit > 0 ? Math.round(newModal / newUnit) : price;
+      existing.harga_pasar_terkini = price;
+      existing.nilai_pasar_total = newUnit * price;
+      existing.unrealized_pnl = existing.nilai_pasar_total - newModal;
+      existing.unrealized_pnl_persen = newModal > 0 ? (existing.unrealized_pnl / newModal) * 100 : 0;
+    } else {
+      Store.state.portofolio.push({
+        id_aset: 'AST-' + Date.now().toString().slice(-6),
+        jenis_aset: jenis,
+        nama_aset: nama,
+        kepemilikan: kepemilikan,
+        total_unit: units,
+        harga_rata_rata: price,
+        total_modal: totalCost,
+        harga_pasar_terkini: price,
+        nilai_pasar_total: units * price,
+        unrealized_pnl: -fee,
+        unrealized_pnl_persen: totalCost > 0 ? (-fee / totalCost) * 100 : 0
+      });
+    }
+
+    Store.recalculateClientLedger();
+    Store.notify('STATE_UPDATED');
+
+    const res = await API.post('beliAsetInvestasi', {
+      jenis_aset: jenis,
+      nama_aset: nama,
+      kepemilikan: kepemilikan,
+      total_unit: units,
+      harga_satuan: price,
+      fee_transaksi: fee,
+      id_dompet: walletId
+    });
+
+    if (res.success) {
+      this.showToast('Aset investasi berhasil dibeli & dicatat!', 'success');
+      Store.fetchFreshData();
+    } else {
+      this.showToast('Error: ' + res.message, 'error');
+    }
+  },
+
+  openSellAssetModal(idAset, namaAset, maxUnit, currentPrice) {
+    this.closeModals();
+    document.getElementById('sellAssetId').value = idAset;
+    document.getElementById('sellAssetName').textContent = namaAset;
+    document.getElementById('sellAssetUnitInfo').textContent = `Tersedia: ${maxUnit} Unit`;
+    document.getElementById('sellAssetUnits').value = '';
+    document.getElementById('sellAssetUnits').max = maxUnit;
+    document.getElementById('sellAssetPrice').value = currentPrice || 0;
+    document.getElementById('modalSellAsset').classList.add('active');
+  },
+
+  async submitSellAsset(e) {
+    e.preventDefault();
+    const idAset = document.getElementById('sellAssetId').value;
+    const units = Number(document.getElementById('sellAssetUnits').value) || 0;
+    const price = Number(document.getElementById('sellAssetPrice').value) || 0;
+    const fee = Number(document.getElementById('sellAssetFee').value) || 0;
+    const walletId = document.getElementById('sellAssetWallet').value;
+    const netProceeds = (units * price) - fee;
+
+    const asset = Store.state.portofolio.find(p => p.id_aset === idAset);
+    if (!asset || units > Number(asset.total_unit)) {
+      this.showToast('Unit yang dijual melebihi jumlah kepemilikan!', 'error');
+      return;
+    }
+
+    this.closeModals();
+    this.showToast('Memproses penjualan aset investasi...', 'info');
+
+    // Catat mutasi kas masuk
+    const trxOpt = {
+      id_transaksi: 'TRX-AST-SELL-' + Date.now(),
+      tanggal: new Date().toISOString().slice(0, 10),
+      waktu: new Date().toTimeString().slice(0, 5),
+      pencatat: Store.state.user ? Store.state.user.name : 'Suami',
+      sifat_transaksi: asset.kepemilikan === 'Bersama' ? 'Rumah Tangga Bersama' : asset.kepemilikan,
+      jenis_transaksi: 'Jual Aset',
+      id_kategori: 'Investasi',
+      id_dompet_asal: walletId,
+      nominal: netProceeds,
+      keterangan: `Jual aset ${asset.nama_aset} (${units} unit @ ${this.formatIDR(price, true)})`,
+      status: 'VALID'
+    };
+    Store.addOptimisticTransaction(trxOpt);
+
+    // Kurangi unit di portofolio lokal
+    asset.total_unit = Number(asset.total_unit) - units;
+    asset.nilai_pasar_total = asset.total_unit * Number(asset.harga_pasar_terkini);
+    Store.recalculateClientLedger();
+    Store.notify('STATE_UPDATED');
+
+    const res = await API.post('jualAsetInvestasi', {
+      id_aset: idAset,
+      unit_dijual: units,
+      harga_satuan_jual: price,
+      fee_transaksi: fee,
+      id_dompet: walletId
+    });
+
+    if (res.success) {
+      this.showToast('Penjualan aset investasi berhasil dilunasi ke dompet!', 'success');
+      Store.fetchFreshData();
+    } else {
+      this.showToast('Error: ' + res.message, 'error');
+    }
+  },
+
+  // =====================================================================================
+  // MODUL UTANG & PIUTANG
+  // =====================================================================================
+  openAddDebtModal() {
+    this.closeModals();
+    const form = document.getElementById('addDebtForm');
+    if (form) form.reset();
+    document.getElementById('modalAddDebt').classList.add('active');
+  },
+
+  async submitAddDebt(e) {
+    e.preventDefault();
+    const amount = Number(document.getElementById('debtAmount').value) || 0;
+    const payload = {
+      id_utang_piutang: 'DEB-' + Date.now().toString().slice(-6),
+      jenis: document.getElementById('debtType').value,
+      pihak_kedua: document.getElementById('debtParty').value,
+      sifat: document.getElementById('debtScope').value,
+      nominal_awal: amount,
+      total_terbayar: 0,
+      sisa_nominal: amount,
+      jatuh_tempo: document.getElementById('debtDueDate').value || '',
+      status: 'BELUM_LUNAS',
+      keterangan: document.getElementById('debtNotes').value || ''
+    };
+
+    this.closeModals();
+    this.showToast('Menyimpan data utang/piutang...', 'info');
+
+    Store.state.utangPiutang.push(payload);
+    Store.recalculateClientLedger();
+    Store.notify('STATE_UPDATED');
+
+    const res = await API.post('kelolaUtangPiutang', {
+      action_type: 'TAMBAH',
+      data: payload
+    });
+
+    if (res.success) {
+      this.showToast('Data utang/piutang berhasil disimpan!', 'success');
+      Store.fetchFreshData();
+    } else {
+      this.showToast('Error: ' + res.message, 'error');
+    }
+  },
+
+  openPayDebtModal(id, pihak, sisa) {
+    this.closeModals();
+    document.getElementById('payDebtId').value = id;
+    document.getElementById('payDebtParty').textContent = pihak;
+    document.getElementById('payDebtRemaining').textContent = `Sisa Kewajiban: ${this.formatIDR(sisa, true)}`;
+    document.getElementById('payDebtAmount').value = sisa;
+    document.getElementById('modalPayDebt').classList.add('active');
+  },
+
+  async submitPayDebt(e) {
+    e.preventDefault();
+    const id = document.getElementById('payDebtId').value;
+    const nominal = Number(document.getElementById('payDebtAmount').value) || 0;
+    const walletId = document.getElementById('payDebtWallet').value;
+
+    const item = Store.state.utangPiutang.find(u => u.id_utang_piutang === id);
+    if (!item) return;
+
+    this.closeModals();
+    this.showToast('Memproses pembayaran cicilan...', 'info');
+
+    // Update status lokal
+    item.total_terbayar = (Number(item.total_terbayar) || 0) + nominal;
+    item.sisa_nominal = Math.max(0, (Number(item.nominal_awal) || 0) - item.total_terbayar);
+    if (item.sisa_nominal === 0) item.status = 'LUNAS';
+
+    // Catat mutasi pengeluaran kas (jika utang) atau pemasukan (jika piutang)
+    const isUtang = item.jenis === 'Utang';
+    const trxOpt = {
+      id_transaksi: 'TRX-DEB-' + Date.now(),
+      tanggal: new Date().toISOString().slice(0, 10),
+      waktu: new Date().toTimeString().slice(0, 5),
+      pencatat: Store.state.user ? Store.state.user.name : 'Suami',
+      sifat_transaksi: item.sifat || 'Rumah Tangga Bersama',
+      jenis_transaksi: isUtang ? 'Pengeluaran' : 'Pemasukan',
+      id_kategori: isUtang ? 'Bayar Cicilan Utang' : 'Penerimaan Piutang',
+      id_dompet_asal: walletId,
+      nominal: nominal,
+      keterangan: `Cicilan ${item.jenis} - ${item.pihak_kedua}`,
+      status: 'VALID'
+    };
+    Store.addOptimisticTransaction(trxOpt);
+
+    Store.recalculateClientLedger();
+    Store.notify('STATE_UPDATED');
+
+    const res = await API.post('bayarCicilanUtangPiutang', {
+      id_utang_piutang: id,
+      nominal_bayar: nominal,
+      id_dompet: walletId
+    });
+
+    if (res.success) {
+      this.showToast('Pembayaran cicilan berhasil!', 'success');
+      Store.fetchFreshData();
+    } else {
+      this.showToast('Error: ' + res.message, 'error');
+    }
+  },
+
+  // =====================================================================================
+  // MODUL TAMBAH KATEGORI TRANSAKSI BARU
+  // =====================================================================================
+  openAddCategoryModal() {
+    this.closeModals();
+    const form = document.getElementById('addCategoryForm');
+    if (form) form.reset();
+    document.getElementById('modalAddCategory').classList.add('active');
+  },
+
+  async submitAddCategory(e) {
+    e.preventDefault();
+    const nama = document.getElementById('catName').value;
+    const tipe = document.getElementById('catType').value;
+    const ikon = document.getElementById('catIcon').value;
+
+    const payload = {
+      id_kategori: 'KAT-' + (Store.state.kategori.length + 1).toString().padStart(2, '0'),
+      nama_kategori: nama,
+      tipe: tipe,
+      ikon: ikon,
+      warna_badge: tipe === 'Pemasukan' ? '#10B981' : '#0E4D43'
+    };
+
+    this.closeModals();
+    this.showToast('Menambahkan kategori baru...', 'info');
+
+    Store.state.kategori.push(payload);
+    this.populateDropdowns();
+    Store.notify('STATE_UPDATED');
+
+    const res = await API.post('tambahKategori', payload);
+    if (res.success) {
+      this.showToast(`Kategori "${nama}" berhasil ditambahkan!`, 'success');
+      Store.fetchFreshData();
+    } else {
+      this.showToast('Error: ' + res.message, 'error');
+    }
+  },
   },
 
   async deleteTransaction(id) {

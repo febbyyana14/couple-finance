@@ -18,6 +18,7 @@ const Store = {
     activeView: 'dashboard', // dashboard, daily, bills, budget, savings, invest, debts, reports, settings
     filterScope: 'All Family', // All Family, Pribadi Suami, Pribadi Istri, Rumah Tangga Bersama
     theme: 'light', // light atau dark
+    isPrivacyMode: false, // sensor nominal (true/false)
     isSidebarOpen: true,
 
     // Data Inti Finansial
@@ -64,9 +65,10 @@ const Store = {
       try { this.state.user = JSON.parse(storedUser); } catch (e) {}
     }
 
-    // 2. Muat Tema Tampilan
+    // 2. Muat Tema & Privasi Tampilan
     this.state.theme = localStorage.getItem(CONFIG.THEME_STORAGE_KEY) || 'light';
     this.applyTheme(this.state.theme);
+    this.state.isPrivacyMode = localStorage.getItem(CONFIG.PRIVACY_STORAGE_KEY) === 'true';
 
     // 3. Muat Data Cepat dari Local Cache (Instan!)
     const localCached = localStorage.getItem(CONFIG.DATA_CACHE_KEY);
@@ -210,6 +212,24 @@ const Store = {
     const scope = this.state.filterScope;
     if (scope === 'All Family') return this.state.transaksi;
     return this.state.transaksi.filter(t => t.sifat_transaksi === scope);
+  },
+
+  // Toggle Sembunyikan / Tampilkan Angka (Privacy Eye Mode)
+  togglePrivacy() {
+    this.state.isPrivacyMode = !this.state.isPrivacyMode;
+    localStorage.setItem(CONFIG.PRIVACY_STORAGE_KEY, String(this.state.isPrivacyMode));
+    this.notify('PRIVACY_TOGGLED', this.state.isPrivacyMode);
+  },
+
+  // Perbarui Foto Profil Pengguna
+  updateUserAvatar(userId, newAvatarUrl) {
+    if (this.state.user && this.state.user.id === userId) {
+      this.state.user.avatar = newAvatarUrl;
+      localStorage.setItem(CONFIG.ACTIVE_USER_KEY, JSON.stringify(this.state.user));
+    }
+    const targetUser = this.state.pengguna.find(u => u.id_pengguna === userId);
+    if (targetUser) targetUser.avatar_url = newAvatarUrl;
+    this.notify('USER_AVATAR_UPDATED', { userId, newAvatarUrl });
   },
 
   // Helper Optimistic Update

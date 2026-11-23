@@ -91,14 +91,19 @@
         </a>
       </div>
 
-      <!-- Profil Pengguna Aktif & Switcher -->
-      <div class="sidebar-user" onclick="App.toggleProfileSwitchModal()">
-        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Suami" id="sidebarAvatar" class="user-avatar" alt="Avatar">
-        <div class="user-info">
+      <!-- Profil Pengguna Aktif & Switcher / Ganti Foto -->
+      <div class="sidebar-user">
+        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Suami" id="sidebarAvatar" class="user-avatar" alt="Avatar" title="Klik untuk ganti foto profil" onclick="App.openChangeAvatarModal()">
+        <div class="user-info" onclick="App.toggleProfileSwitchModal()" style="cursor: pointer;" title="Klik untuk berganti akun Suami / Istri">
           <div class="user-name" id="sidebarUserName">Suami</div>
           <div class="user-role-badge">Dual-Admin Active</div>
         </div>
-        <i class="fa-solid fa-arrows-rotate" style="font-size: 13px; color: rgba(255,255,255,0.7);"></i>
+        <button type="button" class="theme-toggle-btn" style="width: 28px; height: 28px; font-size: 11px;" title="Ganti Foto Profil" onclick="App.openChangeAvatarModal()">
+          <i class="fa-solid fa-camera"></i>
+        </button>
+        <button type="button" class="theme-toggle-btn" style="width: 28px; height: 28px; font-size: 11px;" title="Ganti Akun (Suami/Istri)" onclick="App.toggleProfileSwitchModal()">
+          <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
       </div>
 
       <!-- Daftar Menu 6 Pilar Finansial -->
@@ -171,6 +176,11 @@
         </div>
 
         <div class="header-right">
+          <!-- Tombol Privacy Toggle (Mata Sensor Angka Sensitif) -->
+          <button class="header-icon-btn" id="btnPrivacyToggle" title="Sembunyikan / Tampilkan Angka" onclick="App.togglePrivacy()">
+            <i class="fa-solid fa-eye" id="privacyIcon"></i>
+          </button>
+
           <!-- Tombol Catat Cepat (+ Transaksi) -->
           <button class="btn-quick-entry" onclick="App.openQuickEntryModal()">
             <i class="fa-solid fa-plus"></i>
@@ -357,7 +367,10 @@
                 <h2 style="font-size: 18px; font-weight: 700;">Buku Transaksi Harian</h2>
                 <p style="font-size: 12.5px; color: var(--text-muted);">Seluruh mutasi pemasukan, pengeluaran, dan transfer dana</p>
               </div>
-              <div style="display: flex; gap: 10px;">
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="scope-pill" style="border: 1px solid var(--border-light); background: var(--card-light);" onclick="App.openAddCategoryModal()">
+                  <i class="fa-solid fa-tags" style="color: var(--accent-ocean);"></i> Kategori Baru
+                </button>
                 <button class="scope-pill" style="border: 1px solid var(--border-light); background: var(--card-light);" onclick="App.exportExcel()">
                   <i class="fa-solid fa-file-excel" style="color: #10B981;"></i> Ekspor Excel
                 </button>
@@ -580,6 +593,32 @@
           <div class="table-card" style="max-width: 760px; margin: 0 auto;">
             <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 20px;">Pengaturan Aplikasi & Cloud Sync</h2>
 
+            <!-- Kartu Kelola Foto Profil Suami & Istri -->
+            <div style="background: var(--canvas-light); border: 1px solid var(--border-light); border-radius: 12px; padding: 18px; margin-bottom: 24px;">
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 6px;">Foto Profil Suami & Istri</h3>
+              <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px;">Sesuaikan foto profil atau pilih avatar ilustrasi untuk membedakan catatan transaksi.</p>
+              <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 12px; background: var(--card-light); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-light); flex: 1; min-width: 200px;">
+                  <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Suami" id="settingAvatarSuami" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--accent-emerald);" alt="Suami">
+                  <div>
+                    <div style="font-weight: 700; font-size: 13.5px;">Suami</div>
+                    <button type="button" class="scope-pill" style="padding: 3px 10px; font-size: 11px; margin-top: 4px; border: 1px solid var(--border-light); background: var(--canvas-light);" onclick="App.openChangeAvatarModal('USR-01')">
+                      <i class="fa-solid fa-camera"></i> Ganti Foto
+                    </button>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; background: var(--card-light); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-light); flex: 1; min-width: 200px;">
+                  <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Istri" id="settingAvatarIstri" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--accent-amber);" alt="Istri">
+                  <div>
+                    <div style="font-weight: 700; font-size: 13.5px;">Istri</div>
+                    <button type="button" class="scope-pill" style="padding: 3px 10px; font-size: 11px; margin-top: 4px; border: 1px solid var(--border-light); background: var(--canvas-light);" onclick="App.openChangeAvatarModal('USR-02')">
+                      <i class="fa-solid fa-camera"></i> Ganti Foto
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <form id="settingsForm" onsubmit="App.saveSettings(event)">
               <div class="form-group">
                 <label class="form-label">URL Backend Google Apps Script (GAS_URL)</label>
@@ -797,6 +836,481 @@
         <div class="modal-footer">
           <button type="button" class="scope-pill" onclick="App.closeModals()">Batal</button>
           <button type="submit" class="btn-quick-entry">Perbarui Harga</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Ganti Foto Profil / Avatar -->
+  <div id="modalChangeAvatar" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Ganti Foto Profil / Avatar</h3>
+        <button class="modal-close-btn" onclick="App.closeModals()">&times;</button>
+      </div>
+      <form id="changeAvatarForm" onsubmit="App.submitChangeAvatar(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Pilih Profil Pengguna</label>
+            <select id="avatarUserId" class="form-select" onchange="App.onAvatarUserChange(this.value)">
+              <option value="USR-01">Suami</option>
+              <option value="USR-02">Istri</option>
+            </select>
+          </div>
+
+          <div style="text-align: center; margin: 14px 0;">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Suami" id="avatarPreviewImg" style="width: 72px; height: 72px; border-radius: 50%; border: 3px solid var(--primary-teal); box-shadow: 0 4px 14px rgba(14,77,67,0.25);" alt="Preview">
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Pratinjau Foto Profil</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Pilih dari Koleksi Avatar Preset</label>
+            <div class="avatar-preset-grid" id="avatarPresetContainer">
+              <!-- Diisi dinamis oleh App.renderAvatarPresets() -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Atau Masukkan URL Gambar Kustom</label>
+            <input type="url" id="avatarCustomUrl" class="form-input" placeholder="https://domain.com/foto-anda.jpg" oninput="App.previewCustomAvatarUrl(this.value)">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Atau Unggah Berkas Foto (Lokal)</label>
+            <input type="file" id="avatarFileInput" class="form-input" accept="image/*" onchange="App.handleAvatarFileUpload(event)">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="scope-pill" onclick="App.closeModals()">Batal</button>
+          <button type="submit" class="btn-quick-entry">Simpan Foto Profil</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Tambah Tagihan Rutin -->
+  <div id="modalAddBill" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Tambah Tagihan Rutin Bulanan</h3>
+        <button class="modal-close-btn" onclick="App.closeModals()">&times;</button>
+      </div>
+      <form id="addBillForm" onsubmit="App.submitAddBill(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Nama Tagihan / Layanan</label>
+            <input type="text" id="billName" class="form-input" placeholder="Contoh: WiFi IndiHome / Listrik PLN" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Kategori</label>
+              <select id="billCategory" class="form-select">
+                <!-- Diisi otomatis -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tipe Nominal</label>
+              <select id="billTypeNominal" class="form-select">
+                <option value="TETAP">Tetap (Fix)</option>
+                <option value="VARIABEL">Variabel (Berubah-ubah)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nominal Estimasi (Rp)</label>
+              <input type="number" id="billAmount" class="form-input" placeholder="0" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tanggal Jatuh Tempo (Tgl 1-31)</label>
+              <input type="number" id="billDueDate" class="form-input" min="1" max="31" value="10" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Frekuensi</label>
+              <select id="billFrequency" class="form-select">
+                <option value="Bulanan">Bulanan</option>
+                <option value="Tahunan">Tahunan</option>
+                <option value="Mingguan">Mingguan</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sifat Tagihan</label>
+              <select id="billScope" class="form-select">
+                <option value="Rumah Tangga Bersama">Rumah Tangga Bersama</option>
+                <option value="Pribadi Suami">Pribadi Suami</option>
+                <option value="Pribadi Istri">Pribadi Istri</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Dompet Sumber Default</label>
+            <select id="billWallet" class="form-select">
+              <!-- Diisi otomatis -->
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="scope-pill" onclick="App.closeModals()">Batal</button>
+          <button type="submit" class="btn-quick-entry">Simpan Tagihan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Pasang Anggaran Bulanan -->
+  <div id="modalAddBudget" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Pasang Anggaran Belanja Bulanan</h3>
+        <button class="modal-close-btn" onclick="App.closeModals()">&times;</button>
+      </div>
+      <form id="addBudgetForm" onsubmit="App.submitAddBudget(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Kategori Belanja</label>
+            <select id="budgetCategory" class="form-select">
+              <!-- Diisi otomatis -->
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Periode Bulan</label>
+              <input type="month" id="budgetPeriod" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pagu Anggaran (Rp)</label>
+              <input type="number" id="budgetAmount" class="form-input" placeholder="0" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Alokasi Sifat</label>
+            <select id="budgetScope" class="form-select">
+              <option value="Rumah Tangga Bersama">Rumah Tangga Bersama</option>
+              <option value="Pribadi Suami">Pribadi Suami</option>
+              <option value="Pribadi Istri">Pribadi Istri</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="scope-pill" onclick="App.closeModals()">Batal</button>
+          <button type="submit" class="btn-quick-entry">Pasang Anggaran</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Buat Target Tabungan Baru -->
+  <div id="modalAddGoal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Buat Target Tabungan Baru</h3>
+        <button class="modal-close-btn" onclick="App.closeModals()">&times;</button>
+      </div>
+      <form id="addGoalForm" onsubmit="App.submitAddGoal(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Nama Rencana / Target Tabungan</label>
+            <input type="text" id="goalName" class="form-input" placeholder="Contoh: Dana Darurat 6 Bulan / DP Rumah" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Kategori Target</label>
+              <select id="goalCategory" class="form-select">
+                <option value="Dana Darurat">Dana Darurat</option>
+                <option value="Rumah & Properti">Rumah & Properti</option>
+                <option value="Liburan Keluarga">Liburan Keluarga</option>
+                <option value="Kendaraan">Kendaraan</option>
+                <option value="Pendidikan Anak">Pendidikan Anak</option>
+                <option value="Anniversary & Pernikahan">Anniversary & Pernikahan</option>
+                <option value="Gadget & Elektronik">Gadget & Elektronik</option>
+                <option value="Lainnya">Lainnya (dll)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Klasifikasi Target</label>
+              <select id="goalScope" class="form-select">
+                <option value="Tabungan Bersama">Tabungan Bersama</option>
+                <option value="Tabungan Pribadi Suami">Tabungan Pribadi Suami</option>
+                <option value="Tabungan Pribadi Istri">Tabungan Pribadi Istri</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Target Nominal Total (Rp)</label>
+              <input type="number" id="goalTargetAmount" class="form-input" placeholder="0" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Target Tanggal Selesai</label>
+              <input type="date" id="goalTargetDate" class="form-input" required>
+            </div>
+          </div>
+
+          <div style="background: #FEF3C7; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #92400E;">
+            <i class="fa-solid fa-shield-halved"></i> Alokasi target tabungan tidak menggandakan aset Net Worth dan hanya berfungsi sebagai earmarking dana virtual yang aman.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="scope-pill" onclick="App.closeModals()">Batal</button>
+          <button type="submit" class="btn-quick-entry">Buat Target</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Beli Aset Investasi -->
+  <div id="modalBuyAsset" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Beli Aset Investasi</h3>
+        <button class="modal-close-btn" onclick="App.closeModals()">&times;</button>
+      </div>
+      <form id="buyAssetForm" onsubmit="App.submitBuyAsset(event)">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Jenis Instrumen</label>
+              <select id="buyAssetType" class="form-select" onchange="App.onBuyAssetTypeChange(this.value)">
+                <option value="Bitcoin (BTC)">Bitcoin (BTC)</option>
+                <option value="Saham">Saham</option>
+                <option value="Emas (Gold)">Emas (Gold)</option>
+                <option value="Lainnya">Lainnya</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Kepemilikan</label>
+              <select id="buyAssetOwnership" class="form-select">
+                <option value="Bersama">Bersama</option>
+                <option value="Pribadi Suami">Pribadi Suami</option>
+                <option value="Pribadi Istri">Pribadi Istri</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Nama Aset / Ticker</label>
+            <input type="text" id="buyAssetName" class="form-input" placeholder="Contoh: Bitcoin / BBCA / Antam 10g" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Total Unit</label>
+              <input type="number" step="any" id="buyAssetUnits" class="form-input" placeholder="Contoh: 0.05 atau 10" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Harga Satuan Beli (Rp)</label>
+              <input type="number" id="buyAssetPrice" class="form-input" placeholder="0" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Fee Transaksi (Rp)</label>
+              <input type="number" id="buyAssetFee" class="form-input" value="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dompet Sumber Pembayaran</label>
+              <select id="buyAssetWallet" class="form-select">
+                <!-- Diisi otomatis -->
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="scope-pill" onclick="App.closeModals()">Batal</button>
+          <button type="submit" class="btn-quick-entry">Catat Beli Aset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Jual Aset Investasi -->
+  <div id="modalSellAsset" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Jual Aset Investasi</h3>
+        <button class="modal-close-btn" onclick="App.closeModals()">&times;</button>
+      </div>
+      <form id="sellAssetForm" onsubmit="App.submitSellAsset(event)">
+        <div class="modal-body">
+          <input type="hidden" id="sellAssetId">
+          <div style="font-size: 15px; font-weight: 700; margin-bottom: 4px;" id="sellAssetName">Bitcoin</div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;" id="sellAssetUnitInfo">Tersedia: 0.25 Unit</div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Unit yang Dijual</label>
+              <input type="number" step="any" id="sellAssetUnits" class="form-input" placeholder="0" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Harga Jual per Unit (Rp)</label>
+              <input type="number" id="sellAssetPrice" class="form-input" placeholder="0" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Fee Transaksi Jual (Rp)</label>
+              <input type="number" id="sellAssetFee" class="form-input" value="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dompet Penerima Hasil Jual</label>
+              <select id="sellAssetWallet" class="form-select">
+                <!-- Diisi otomatis -->
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="scope-pill" onclick="App.closeModals()">Batal</button>
+          <button type="submit" class="btn-quick-entry" style="background: var(--accent-coral);">Konfirmasi Jual Aset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Catat Utang / Piutang Baru -->
+  <div id="modalAddDebt" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Catat Utang / Piutang</h3>
+        <button class="modal-close-btn" onclick="App.closeModals()">&times;</button>
+      </div>
+      <form id="addDebtForm" onsubmit="App.submitAddDebt(event)">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Jenis</label>
+              <select id="debtType" class="form-select">
+                <option value="Utang">Utang (Kewajiban Membayar)</option>
+                <option value="Piutang">Piutang (Hak Menagih Uang)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sifat Pos</label>
+              <select id="debtScope" class="form-select">
+                <option value="Rumah Tangga Bersama">Rumah Tangga Bersama</option>
+                <option value="Pribadi Suami">Pribadi Suami</option>
+                <option value="Pribadi Istri">Pribadi Istri</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Pihak Kedua (Nama Lembaga / Kerabat)</label>
+            <input type="text" id="debtParty" class="form-input" placeholder="Contoh: Bank BCA / Kerabat Budi" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nominal Pokok (Rp)</label>
+              <input type="number" id="debtAmount" class="form-input" placeholder="0" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tanggal Jatuh Tempo</label>
+              <input type="date" id="debtDueDate" class="form-input">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Keterangan (Opsional)</label>
+            <input type="text" id="debtNotes" class="form-input" placeholder="Contoh: Cicilan mobil / pinjaman darurat">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="scope-pill" onclick="App.closeModals()">Batal</button>
+          <button type="submit" class="btn-quick-entry">Simpan Catatan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Bayar Cicilan Utang / Terima Piutang -->
+  <div id="modalPayDebt" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Bayar Cicilan Utang / Piutang</h3>
+        <button class="modal-close-btn" onclick="App.closeModals()">&times;</button>
+      </div>
+      <form id="payDebtForm" onsubmit="App.submitPayDebt(event)">
+        <div class="modal-body">
+          <input type="hidden" id="payDebtId">
+          <div style="font-size: 15px; font-weight: 700; margin-bottom: 4px;" id="payDebtParty">Pihak Kedua</div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;" id="payDebtRemaining">Sisa Kewajiban: Rp 0</div>
+
+          <div class="form-group">
+            <label class="form-label">Nominal Pembayaran (Rp)</label>
+            <input type="number" id="payDebtAmount" class="form-input" placeholder="0" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Dompet Kas Terhubung</label>
+            <select id="payDebtWallet" class="form-select">
+              <!-- Diisi otomatis -->
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="scope-pill" onclick="App.closeModals()">Batal</button>
+          <button type="submit" class="btn-quick-entry">Konfirmasi Pembayaran</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Tambah Kategori Baru -->
+  <div id="modalAddCategory" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Tambah Kategori Transaksi</h3>
+        <button class="modal-close-btn" onclick="App.closeModals()">&times;</button>
+      </div>
+      <form id="addCategoryForm" onsubmit="App.submitAddCategory(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Nama Kategori Baru</label>
+            <input type="text" id="catName" class="form-input" placeholder="Contoh: Vaksin Hewan / Servis AC" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Tipe Kategori</label>
+              <select id="catType" class="form-select">
+                <option value="Pengeluaran">Pengeluaran</option>
+                <option value="Pemasukan">Pemasukan</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ikon FontAwesome</label>
+              <select id="catIcon" class="form-select">
+                <option value="tag">🏷️ Tag</option>
+                <option value="utensils">🍴 Makanan</option>
+                <option value="shopping-cart">🛒 Sembako/Dapur</option>
+                <option value="car">🚗 Transport/Bensin</option>
+                <option value="house">🏠 Rumah/Sewa</option>
+                <option value="heart-pulse">🩺 Kesehatan</option>
+                <option value="book-open">📚 Pendidikan</option>
+                <option value="tv">📺 Hiburan/Streaming</option>
+                <option value="briefcase">💼 Gaji/Pekerjaan</option>
+                <option value="coins">🪙 Investasi/Dividen</option>
+                <option value="ellipsis">⋯ Lainnya (dll)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="scope-pill" onclick="App.closeModals()">Batal</button>
+          <button type="submit" class="btn-quick-entry">Tambah Kategori</button>
         </div>
       </form>
     </div>

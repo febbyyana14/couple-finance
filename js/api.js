@@ -115,13 +115,29 @@ const API = {
       ],
       kategori: [
         { id_kategori: 'KAT-01', nama_kategori: 'Makanan & Minuman', tipe: 'Pengeluaran', ikon: 'utensils', warna_badge: '#EA580C' },
-        { id_kategori: 'KAT-02', nama_kategori: 'Listrik & Utilitas', tipe: 'Pengeluaran', ikon: 'zap', warna_badge: '#D97706' },
-        { id_kategori: 'KAT-03', nama_kategori: 'WiFi & Internet', tipe: 'Pengeluaran', ikon: 'wifi', warna_badge: '#0284C7' },
-        { id_kategori: 'KAT-04', nama_kategori: 'Transport & Bensin', tipe: 'Pengeluaran', ikon: 'car', warna_badge: '#10B981' },
-        { id_kategori: 'KAT-05', nama_kategori: 'Kebutuhan Dapur', tipe: 'Pengeluaran', ikon: 'shopping-cart', warna_badge: '#EA580C' },
-        { id_kategori: 'KAT-06', nama_kategori: 'Pribadi Suami', tipe: 'Pengeluaran', ikon: 'smartphone', warna_badge: '#0E4D43' },
-        { id_kategori: 'KAT-07', nama_kategori: 'Pribadi Istri', tipe: 'Pengeluaran', ikon: 'sparkles', warna_badge: '#F59E0B' },
-        { id_kategori: 'KAT-08', nama_kategori: 'Gaji & Pendapatan', tipe: 'Pemasukan', ikon: 'briefcase', warna_badge: '#10B981' }
+        { id_kategori: 'KAT-02', nama_kategori: 'Kebutuhan Dapur & Sembako', tipe: 'Pengeluaran', ikon: 'shopping-cart', warna_badge: '#EA580C' },
+        { id_kategori: 'KAT-03', nama_kategori: 'Listrik & Utilitas', tipe: 'Pengeluaran', ikon: 'zap', warna_badge: '#D97706' },
+        { id_kategori: 'KAT-04', nama_kategori: 'Air & PDAM', tipe: 'Pengeluaran', ikon: 'faucet', warna_badge: '#0284C7' },
+        { id_kategori: 'KAT-05', nama_kategori: 'WiFi & Internet', tipe: 'Pengeluaran', ikon: 'wifi', warna_badge: '#0284C7' },
+        { id_kategori: 'KAT-06', nama_kategori: 'Transportasi & Bensin', tipe: 'Pengeluaran', ikon: 'car', warna_badge: '#10B981' },
+        { id_kategori: 'KAT-07', nama_kategori: 'Sewa / KPR Rumah', tipe: 'Pengeluaran', ikon: 'house', warna_badge: '#6366F1' },
+        { id_kategori: 'KAT-08', nama_kategori: 'Perawatan Rumah & Servis', tipe: 'Pengeluaran', ikon: 'wrench', warna_badge: '#64748B' },
+        { id_kategori: 'KAT-09', nama_kategori: 'Kesehatan, Obat & BPJS', tipe: 'Pengeluaran', ikon: 'heart-pulse', warna_badge: '#EF4444' },
+        { id_kategori: 'KAT-10', nama_kategori: 'Pendidikan Anak & Sekolah', tipe: 'Pengeluaran', ikon: 'book-open', warna_badge: '#8B5CF6' },
+        { id_kategori: 'KAT-11', nama_kategori: 'Belanja Harian & Pakaian', tipe: 'Pengeluaran', ikon: 'bag-shopping', warna_badge: '#EC4899' },
+        { id_kategori: 'KAT-12', nama_kategori: 'Hiburan & Liburan', tipe: 'Pengeluaran', ikon: 'umbrella-beach', warna_badge: '#F59E0B' },
+        { id_kategori: 'KAT-13', nama_kategori: 'Pulsa & Paket Data', tipe: 'Pengeluaran', ikon: 'mobile-screen', warna_badge: '#0284C7' },
+        { id_kategori: 'KAT-14', nama_kategori: 'Langganan Aplikasi (Netflix/SaaS)', tipe: 'Pengeluaran', ikon: 'tv', warna_badge: '#E11D48' },
+        { id_kategori: 'KAT-15', nama_kategori: 'Donasi, Zakat & Sedekah', tipe: 'Pengeluaran', ikon: 'hand-holding-heart', warna_badge: '#10B981' },
+        { id_kategori: 'KAT-16', nama_kategori: 'Pribadi Suami (Hobi/Gadget)', tipe: 'Pengeluaran', ikon: 'laptop', warna_badge: '#0E4D43' },
+        { id_kategori: 'KAT-17', nama_kategori: 'Pribadi Istri (Skincare/Fashion)', tipe: 'Pengeluaran', ikon: 'sparkles', warna_badge: '#D97706' },
+        { id_kategori: 'KAT-18', nama_kategori: 'Pengeluaran Lainnya (dll)', tipe: 'Pengeluaran', ikon: 'ellipsis', warna_badge: '#64748B' },
+        { id_kategori: 'KAT-19', nama_kategori: 'Gaji Pokok & Upah', tipe: 'Pemasukan', ikon: 'briefcase', warna_badge: '#10B981' },
+        { id_kategori: 'KAT-20', nama_kategori: 'Bonus, THR & Tunjangan', tipe: 'Pemasukan', ikon: 'gift', warna_badge: '#10B981' },
+        { id_kategori: 'KAT-21', nama_kategori: 'Hasil Usaha & Dagang', tipe: 'Pemasukan', ikon: 'store', warna_badge: '#0284C7' },
+        { id_kategori: 'KAT-22', nama_kategori: 'Freelance & Sampingan', tipe: 'Pemasukan', ikon: 'computer', warna_badge: '#0284C7' },
+        { id_kategori: 'KAT-23', nama_kategori: 'Dividen, Kupon & Investasi', tipe: 'Pemasukan', ikon: 'coins', warna_badge: '#EAB308' },
+        { id_kategori: 'KAT-24', nama_kategori: 'Pemasukan Lainnya (dll)', tipe: 'Pemasukan', ikon: 'ellipsis', warna_badge: '#64748B' }
       ],
       transaksi: [
         { id_transaksi: 'TRX-SAMPLE-01', tanggal: '2026-11-23', waktu: '08:30', pencatat: 'Istri', sifat_transaksi: 'Rumah Tangga Bersama', jenis_transaksi: 'Pengeluaran', id_kategori: 'KAT-05', id_dompet_asal: 'WLT-03', nominal: 450000, keterangan: 'Belanja mingguan pasar & supermarket', status: 'VALID' },
@@ -182,7 +198,43 @@ const API = {
       }
     }
 
-    // Simulasi penyimpanan lokal
+    if (action === 'gantiFotoProfil') {
+      return { success: true, message: 'Foto profil berhasil diperbarui!' };
+    }
+
+    if (action === 'beliAsetInvestasi') {
+      return { success: true, message: 'Pembelian aset investasi berhasil dicatat!' };
+    }
+
+    if (action === 'jualAsetInvestasi') {
+      return { success: true, message: 'Penjualan aset investasi berhasil dicatat!' };
+    }
+
+    if (action === 'kelolaTagihanRutin') {
+      return { success: true, message: 'Tagihan rutin berhasil disimpan!' };
+    }
+
+    if (action === 'kelolaTargetTabungan') {
+      return { success: true, message: 'Target tabungan berhasil dibuat!' };
+    }
+
+    if (action === 'kelolaAnggaran') {
+      return { success: true, message: 'Anggaran belanja berhasil dipasang!' };
+    }
+
+    if (action === 'kelolaUtangPiutang') {
+      return { success: true, message: 'Data utang/piutang berhasil dicatat!' };
+    }
+
+    if (action === 'bayarCicilanUtangPiutang') {
+      return { success: true, message: 'Pembayaran cicilan berhasil!' };
+    }
+
+    if (action === 'tambahKategori') {
+      return { success: true, message: 'Kategori baru berhasil ditambahkan!' };
+    }
+
+    // Simulasi penyimpanan lokal umum
     return { success: true, message: 'Aksi berhasil diproses (Mode Demo Simulasi)', data: payload };
   }
 };
